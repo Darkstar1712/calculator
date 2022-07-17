@@ -1,122 +1,187 @@
-let firstNumber = "0";
-let secondNumber = "0";
-let operator = "";
-const display = document.querySelector(".display");
-
-setup();  
+const calculator = {
+    displayValue: "0",
+    firstNumber: null,
+    waitingForSecondNumber: false,
+    operator: null,
+    positive: true
+};
 
 // Adds all the event listeners to the DOM
-function setup() {
-    document.querySelectorAll(".number").forEach(button => {
-        button.addEventListener("click", () => addValueToNumber(button.textContent))    
-    });
+const buttons = document.querySelector(".buttons");
+
+buttons.addEventListener("click", (e) => {
+    const { target } = e;
+    const value = target.dataset.value;
+
+    switch (value) {
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+        case '=':
+            selectOperator(value);
+            break;
+        case '.':
+            inputDecimal(value);
+            break;
+        case 'all-clear':
+            resetCalculator();
+            break;
+        case "backspace":
+            backspace();
+            break;
+        case "negative":
+            positiveNegative();
+            break;
+        default:
+            if (Number.isInteger(parseFloat(value))) {
+            inputNumber(value);
+        }
+    }
+
+    updateDisplay();
+});
+
+// Updates the value of the display
+function updateDisplay() {
+    const display = document.querySelector(".display");
     
-    document.querySelectorAll(".operator").forEach(button => {
-        button.addEventListener("click", () => selectOperator(button))    
-    });
-    
-    document.querySelector(".equals").addEventListener("click", () => equals()); 
-    
-    document.querySelector(".clear").addEventListener("click", () =>  clear());
+    display.textContent = calculator.displayValue;
 }
 
 // Adds the value of the pressed button to the current number
-function addValueToNumber(value) {
-    if (operator == "") {
-        if (firstNumber.length <= 16 && firstNumber == "0") {
-            firstNumber = value;
-            display.textContent = firstNumber;
-        } else if (firstNumber.length < 16) {
-            firstNumber += value;
-            display.textContent = numberWithCommas(firstNumber);
-        }     
+function inputNumber(number) {
+    const { displayValue, waitingForSecondNumber } = calculator;
+
+    if (waitingForSecondNumber === true) {
+        calculator.displayValue = number;
+        calculator.waitingForSecondNumber = false;
+        calculator.positive = true;
     } else {
-        if (secondNumber.length <= 16 && secondNumber == "0") {
-            secondNumber = value;
-            display.textContent = secondNumber;
-        } else if (secondNumber.length < 16) {
-            secondNumber += value;
-            display.textContent = numberWithCommas(secondNumber);
-        }    
-    }    
+        calculator.displayValue = displayValue === '0' ? number : displayValue + number;
+    }
 }
 
-// Resets the calculator
-function clear() {
-    firstNumber = "0";
-    secondNumber = "0";
-    operator = "";
-    display.textContent = firstNumber;
+// Adds a decimal point if one isn't already present
+function inputDecimal(decimal) {
+    if (calculator.waitingForSecondNumber === true) {
+        calculator.displayValue = '0.'
+        calculator.waitingForSecondNumber = false;
+        return;
+    }
+
+    if (!calculator.displayValue.includes(decimal)) {
+        calculator.displayValue += decimal;
+    }
 }
 
-// Formats the number with commas
-const numberWithCommas = function(x) {
-    var parts = x.split(".");
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return parts.join(".");
+// Handles the processing of the operator buttons
+function selectOperator(nextOperator) {
+    const { firstNumber, displayValue, operator } = calculator
+    const inputValue = parseFloat(displayValue);
+
+    if (nextOperator === "=" && firstNumber === null) {
+        return;
+    } 
+
+    if (operator && calculator.waitingForSecondNumber) {
+        if (nextOperator === "=") {
+            const result = calculate(firstNumber, inputValue, operator);
+    
+            calculator.displayValue = `${parseFloat(result.toFixed(7))}`;
+            calculator.firstNumber = result;
+            calculator.waitingForSecondNumber = true;
+            calculator.operator = nextOperator;
+            calculator.positive = true;
+            return;
+        }
+
+        calculator.operator = nextOperator;
+        return;
+    }
+
+    if (firstNumber === null && !isNaN(inputValue)) {
+      calculator.firstNumber = inputValue;
+    } else if (operator) {
+        const result = calculate(firstNumber, inputValue, operator);
+    
+        calculator.displayValue = `${parseFloat(result.toFixed(7))}`;
+        calculator.firstNumber = result;
+    }
+  
+    calculator.waitingForSecondNumber = true;
+    calculator.operator = nextOperator;
+}
+
+// Resets the calculator back to the default state
+function resetCalculator() {
+    calculator.displayValue = '0';
+    calculator.firstNumber = null;
+    calculator.waitingForSecondNumber = false;
+    calculator.operator = null;
+    calculator.positive = true;
+}
+
+// Removes the last input from the display
+function backspace() {
+    const { displayValue } = calculator;
+
+    if (displayValue.length === 1) {
+        calculator.displayValue = "0";
+    } else {
+        calculator.displayValue = displayValue.slice(0, -1);    
+    }
+}
+
+// Switches the input from positive to negative and vice versa
+function positiveNegative() {
+    const { positive, displayValue } = calculator;
+
+    if (displayValue === "0") {
+        return;
+    }
+
+    if (positive === true) {
+        calculator.positive = false;
+        calculator.displayValue = "-" + displayValue;
+    } else {
+        calculator.positive = true;
+        calculator.displayValue = displayValue.replace("-", "");    
+    }
+}
+
+// Calculates the two numbers based on the operator
+function calculate(firstNumber, secondNumber, operator) {
+    switch (operator) {
+        case "+":
+            return add(firstNumber, secondNumber);
+        case "-":
+            return subtract(firstNumber, secondNumber);
+        case "*":
+            return multiply(firstNumber, secondNumber);
+        case "/":
+            return divide(firstNumber, secondNumber);
+    }
+
+    return secondNumber;
 }
 
 // Adds 2 numbers
-const add = function(a, b) {
+function add(a, b) {
     return a + b;
 };
 
 // Subtracts second number from first
-const subtract = function(a, b) {
+function subtract(a, b) {
     return a - b;
 };
 
 // Multiplies first number by second
-const multiply = function(a, b) {
+function multiply(a, b) {
     return a * b;
 };
 
 // Divides first number by second
-const divide = function(a, b) {
+function divide(a, b) {
     return a / b;
 };
-
-const equals = function() {
-    if(!operator.length == 0) {
-        if (secondNumber == 0 && operator == "/") {
-            display.textContent = "Cannot divide by zero";
-            firstNumber = "0";
-            secondNumber = "0";
-            operator = "";
-        } else {
-            firstNumber = operate(firstNumber, secondNumber, operator).toString();
-            secondNumber = "0";
-            operator = "";
-            display.textContent = numberWithCommas(firstNumber);
-        }  
-    }
-}
-
-// Sets the operator to the selected value
-const selectOperator = function(button) {
-    if (operator == "") {
-        operator = button.textContent; 
-    } else {
-        firstNumber = operate(firstNumber, secondNumber, operator).toString();
-        secondNumber = "0";
-        operator = button.textContent;
-        display.textContent = numberWithCommas(firstNumber);
-    }    
-}
-
-// Takes two numbers and runs them through a function based on the value of the operator
-const operate = function(first, second, operator) {
-    a = parseFloat(first);
-    b = parseFloat(second);
-    
-    switch (operator) {
-        case "+":
-            return add(a, b);
-        case "-":
-            return subtract(a, b);
-        case "*":
-            return multiply(a, b);
-        case "/":
-            return divide(a, b);
-    }
-}

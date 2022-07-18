@@ -57,10 +57,27 @@ body {
     font-size: 30px;
 }
 
+.button:active {
+    filter: brightness(150%)
+}
+
 .number, .negative, .decimal {
-    background-color: #0f0f0f;
+    background-color: #1d1d1d;
 }
 
 .equals {
     background-color: rgb(38, 126, 126);
+}
+
+.negative {
+    writing-mode: vertical-rl;
+}
+
+.negative-sign {
+    transform: rotate(90deg);
+    padding-left: 15px;
+}
+
+.is-depressed {
+    filter: brightness(150%);
 }
